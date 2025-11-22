@@ -2,12 +2,13 @@
 
 ## Overview
 
-The Profile Optimizer System is a dual-agent AI architecture designed to enrich member profile data for the White Rabbit Ashland community. The system consists of two independent agents that operate asynchronously:
+The Profile Optimizer System is a three-agent AI architecture designed to enrich member profile data for the White Rabbit Ashland community. The system consists of three specialized agents that operate with strict data access boundaries:
 
-1. **URL Processing Agent**: Event-driven agent that analyzes social profile URLs and generates markdown artifacts
-2. **Interactive Agent**: User-activated conversational agent that assesses profiles and provides optimization suggestions
+1. **Profile Evaluation Agent**: Continuously assesses profile completeness and quality with read-only access to the membership database
+2. **URL Processing Agent**: Event-driven agent that analyzes social profile URLs and generates markdown artifacts
+3. **Interactive Agent**: User-activated conversational agent that provides optimization suggestions without direct database access
 
-Both agents operate in read-only mode with respect to member profile data, maintaining strict ethical boundaries. The Interactive Agent provides copy-to-clipboard suggestions that members manually apply to their profiles.
+The Profile Evaluation Agent is the only agent with read access to member profiles, ensuring data privacy and security. The Interactive Agent receives assessment results as structured data and provides copy-to-clipboard suggestions that members manually apply to their profiles.
 
 ## Architecture
 
@@ -31,8 +32,9 @@ graph TB
     end
     
     subgraph "AI Agents"
-        InteractiveAgent[Interactive Agent<br/>Read-Only]
-        URLAgent[URL Processing Agent<br/>Read-Only]
+        ProfileEvalAgent[Profile Evaluation Agent<br/>Read-Only DB Access]
+        InteractiveAgent[Interactive Agent<br/>No DB Access]
+        URLAgent[URL Processing Agent<br/>Limited Read Access]
     end
     
     subgraph "Data Layer"
@@ -55,17 +57,21 @@ graph TB
     API --> ConversationService
     API --> AgentOrchestrator
     
+    AgentOrchestrator --> ProfileEvalAgent
     AgentOrchestrator --> InteractiveAgent
     AgentOrchestrator --> URLAgent
     
+    ProfileEvalAgent --> Claude
+    ProfileEvalAgent -.read.-> DB
+    ProfileEvalAgent -.write completeness.-> DB
+    
     InteractiveAgent --> Claude
-    InteractiveAgent -.read.-> DB
     InteractiveAgent -.read.-> FS
     InteractiveAgent -.write.-> DB
     
     URLAgent --> Claude
     URLAgent --> WebScraper
-    URLAgent -.read.-> DB
+    URLAgent -.read member_id.-> DB
     URLAgent -.write.-> FS
     
     ProfileService --> DB
@@ -80,6 +86,7 @@ sequenceDiagram
     participant Member
     participant UI as Web Interface
     participant API as Backend API
+    participant PEA as Profile Evaluation Agent
     participant IA as Interactive Agent
     participant UA as URL Processing Agent
     participant DB as Database
@@ -90,7 +97,7 @@ sequenceDiagram
     UI->>API: POST /social-links
     API->>DB: Store social_link (processed=false)
     API->>UA: Trigger URL processing
-    UA->>DB: Read member profile (read-only)
+    UA->>DB: Read member_id & name (limited read)
     UA->>UA: Scrape & analyze URL
     UA->>FS: Write markdown artifact
     UA->>DB: Update social_link (processed=true)
@@ -98,19 +105,23 @@ sequenceDiagram
     Note over Member,FS: Profile Optimization Flow
     Member->>UI: Click "Optimize Profile" button
     UI->>API: POST /optimize-profile
-    API->>IA: Activate Interactive Agent
-    IA->>DB: Read member profile (read-only)
+    API->>PEA: Request profile assessment
+    PEA->>DB: Read member profile (read-only)
+    PEA->>PEA: Calculate completeness score
+    PEA->>PEA: Identify gaps & priorities
+    PEA->>DB: Update profile_completeness table
+    PEA-->>API: Return assessment results (structured data)
+    API->>IA: Activate with assessment results
     IA->>FS: Read social profile artifacts (if exist)
-    IA->>IA: Calculate completeness score
-    IA->>IA: Generate assessment
+    IA->>IA: Generate assessment message
     IA-->>API: Return assessment
     API-->>UI: Display assessment
     
     Member->>UI: Respond to agent questions
     UI->>API: POST /conversation
     API->>DB: Store conversation message
-    API->>IA: Process message
-    IA->>DB: Read profile & conversation history
+    API->>IA: Process message with assessment context
+    IA->>DB: Read conversation history only
     IA->>FS: Read artifacts for context
     IA->>IA: Generate suggestion
     IA-->>API: Return suggestion
@@ -122,6 +133,12 @@ sequenceDiagram
     Member->>UI: Save profile
     UI->>API: PUT /profile
     API->>DB: Update member profile
+    API->>PEA: Trigger reassessment
+    PEA->>DB: Read updated profile
+    PEA->>PEA: Recalculate completeness
+    PEA->>DB: Update profile_completeness
+    PEA-->>API: Return updated assessment
+    API-->>IA: Provide updated context (if active session)
 ```
 
 ## Components and Interfaces
