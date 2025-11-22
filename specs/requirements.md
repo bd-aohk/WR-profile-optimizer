@@ -2,20 +2,21 @@
 
 ## Introduction
 
-The Profile Optimizer System is a proof-of-concept dual-agent AI architecture designed to enrich member profile data for the White Rabbit Ashland community. The system consists of two specialized agents: the URL Processing Agent (event-driven, triggered by URL uploads) and the Interactive Agent (conversational, engages directly with members). The URL Processing Agent analyzes social profiles and generates structured markdown artifacts that serve as context for the Interactive Agent. The Interactive Agent uses these artifacts along with direct conversation to assess existing profiles and help members build complete profiles. The POC will operate with a mock database that mirrors the existing Neon DB schema used by the client (see #[[file:database-schema.md]] for complete schema definition). The system operates under strict ethical principles: all data collection is opt-in, AI suggestions require human approval before publication, and the system maintains clear boundaries between private conversation context and public profile data. The strategic goal is to ensure sufficient profile completeness across all members to enable pattern identification, illuminate collaborative potential between members, and support future operational capabilities that depend on rich member data.
+The Profile Optimizer System is a proof-of-concept three-agent AI architecture designed to enrich member profile data for the White Rabbit Ashland community. The system consists of three specialized agents: the Profile Evaluation Agent (continuously assesses profile completeness), the URL Processing Agent (event-driven, triggered by URL uploads), and the Interactive Agent (conversational, engages directly with members). The Profile Evaluation Agent has read-only access to the membership database and calculates completeness scores and identifies gaps. The URL Processing Agent analyzes social profiles and generates structured markdown artifacts. The Interactive Agent uses evaluation results and artifacts to conduct conversations and generate suggestions, without direct access to the membership database. The POC will operate with a mock database that mirrors the existing Neon DB schema used by the client (see #[[file:database-schema.md]] for complete schema definition). The system operates under strict ethical principles: all data collection is opt-in, AI suggestions require human approval before publication, and the system maintains clear boundaries between private conversation context and public profile data. The strategic goal is to ensure sufficient profile completeness across all members to enable pattern identification, illuminate collaborative potential between members, and support future operational capabilities that depend on rich member data.
 
 ## Glossary
 
+- **Profile Evaluation Agent**: The AI agent that has read-only access to the membership database, calculates completeness scores, and identifies profile gaps
 - **URL Processing Agent**: The event-driven AI agent that analyzes social profile URLs and generates markdown artifacts
-- **Interactive Agent**: The conversational AI agent that conducts interviews and suggests profile improvements to members
+- **Interactive Agent**: The conversational AI agent that conducts interviews and suggests profile improvements to members without direct database access
 - **Member**: A White Rabbit Ashland community member who interacts with the Interactive Agent
 - **Social Profile Artifact**: A markdown file (format: `user_socialprofile_platformname.md`) containing structured data extracted from a social profile
 - **Profile Data**: Information about a member stored in the system, including both public and private data
 - **Conversation Context**: Information shared during private chat sessions with the Interactive Agent
 - **Public Profile**: Member information visible to other community members
 - **Completeness Score**: A metric indicating how much of a member's profile has been filled out
-- **Profile Assessment**: The process by which the Interactive Agent evaluates a member's current profile to identify gaps and prioritize data collection
-- **POC**: Proof of Concept - the initial implementation demonstrating the dual-agent architecture and core functionality
+- **Profile Assessment**: The evaluation performed by the Profile Evaluation Agent to calculate completeness and identify gaps
+- **POC**: Proof of Concept - the initial implementation demonstrating the three-agent architecture and core functionality
 - **Web Interface**: The browser-based chat application where members interact with the Interactive Agent
 - **Backend System**: The FastAPI server that processes requests, manages data, and coordinates both agents
 - **Database**: The PostgreSQL database storing member profiles and conversation history
@@ -31,28 +32,44 @@ The Profile Optimizer System is a proof-of-concept dual-agent AI architecture de
 
 #### Acceptance Criteria
 
-1. WHEN a Member clicks the profile optimizer button in the Web Interface, THE Backend System SHALL retrieve the Member's existing profile from the Database
-2. THE Interactive Agent SHALL perform a Profile Assessment to calculate a Completeness Score and identify gaps before initiating conversation
-3. THE Interactive Agent SHALL present the assessment results to the Member, explaining which profile sections need attention and why they are valuable
-4. THE Interactive Agent SHALL prioritize interview questions based on the Profile Assessment, focusing on missing or incomplete fields
-5. WHILE conducting an interview, THE Interactive Agent SHALL ask targeted questions in natural language about specific gaps (e.g., missing skills, short bio, absent interests)
-6. WHEN a Member responds to interview questions, THE Backend System SHALL store the conversation in the Database
-7. THE Interactive Agent SHALL operate in read-only mode and SHALL NOT write directly to the Member's profile in the Database
-8. WHEN the Interactive Agent generates profile suggestions, THE Web Interface SHALL provide a copy-to-clipboard button for each suggestion
-9. THE Member SHALL manually update their profile fields using the copied suggestions
+1. WHEN a Member clicks the profile optimizer button in the Web Interface, THE Backend System SHALL trigger the Profile Evaluation Agent to assess the Member's profile
+2. THE Profile Evaluation Agent SHALL retrieve the Member's existing profile from the Database and calculate a Completeness Score
+3. THE Profile Evaluation Agent SHALL identify gaps and return assessment results to the Backend System
+4. THE Backend System SHALL provide the assessment results to the Interactive Agent without exposing raw database records
+5. THE Interactive Agent SHALL present the assessment results to the Member, explaining which profile sections need attention and why they are valuable
+6. THE Interactive Agent SHALL prioritize interview questions based on the Profile Assessment, focusing on missing or incomplete fields
+7. WHILE conducting an interview, THE Interactive Agent SHALL ask targeted questions in natural language about specific gaps (e.g., missing skills, short bio, absent interests)
+8. WHEN a Member responds to interview questions, THE Backend System SHALL store the conversation in the Database
+9. THE Interactive Agent SHALL NOT have direct access to the membership Database
+10. WHEN the Interactive Agent generates profile suggestions, THE Web Interface SHALL provide a copy-to-clipboard button for each suggestion
+11. THE Member SHALL manually update their profile fields using the copied suggestions
 
 ### Requirement 2
 
-**User Story:** As a White Rabbit member, I want the agent to provide a detailed assessment of my profile quality, so that I understand what needs improvement and why it matters
+**User Story:** As a White Rabbit member, I want the Profile Evaluation Agent to provide a detailed assessment of my profile quality, so that I understand what needs improvement and why it matters
 
 #### Acceptance Criteria
 
-1. THE Interactive Agent SHALL calculate a Completeness Score as a percentage based on filled versus total profile fields defined in #[[file:database-schema.md]]
-2. THE Interactive Agent SHALL evaluate profile field quality, identifying fields that are too short, vague, or lack detail (e.g., bio under 50 characters)
-3. THE Interactive Agent SHALL identify specific missing or incomplete profile sections including: first_name, last_name, what_you_do, location, skills, interests, inspirations, and prompt_responses
-4. THE Interactive Agent SHALL assign priority levels to missing fields based on strategic importance for collaboration matching and pattern identification
-5. WHEN presenting assessment results, THE Interactive Agent SHALL communicate gaps in natural language with specific examples (e.g., "Your bio is only 20 characters - adding more detail about your work would help others understand your expertise")
-6. THE Interactive Agent SHALL explain why each missing piece of information is valuable for community collaboration and member discovery
+1. THE Profile Evaluation Agent SHALL calculate a Completeness Score as a percentage based on filled versus total profile fields defined in #[[file:database-schema.md]]
+2. THE Profile Evaluation Agent SHALL evaluate profile field quality, identifying fields that are too short, vague, or lack detail (e.g., bio under 50 characters)
+3. THE Profile Evaluation Agent SHALL identify specific missing or incomplete profile sections including: first_name, last_name, what_you_do, location, skills, interests, inspirations, and prompt_responses
+4. THE Profile Evaluation Agent SHALL assign priority levels to missing fields based on strategic importance for collaboration matching and pattern identification
+5. THE Profile Evaluation Agent SHALL return assessment results as structured data including: completeness_score, missing_fields, quality_issues, and priority_recommendations
+6. THE Interactive Agent SHALL receive assessment results from the Backend System and communicate gaps in natural language with specific examples (e.g., "Your bio is only 20 characters - adding more detail about your work would help others understand your expertise")
+7. THE Interactive Agent SHALL explain why each missing piece of information is valuable for community collaboration and member discovery
+
+### Requirement 2A
+
+**User Story:** As a White Rabbit member, I want the Profile Evaluation Agent to continuously monitor my profile changes, so that I receive real-time feedback on my profile completeness
+
+#### Acceptance Criteria
+
+1. WHEN a Member saves updates to their profile, THE Backend System SHALL trigger the Profile Evaluation Agent to reassess the profile
+2. THE Profile Evaluation Agent SHALL recalculate the Completeness Score based on the updated profile data
+3. THE Profile Evaluation Agent SHALL identify any new gaps or improvements in profile quality
+4. THE Backend System SHALL update the profile_completeness table with the new assessment results
+5. WHERE the Interactive Agent has an active conversation session with the Member, THE Backend System SHALL provide updated assessment results to the Interactive Agent
+6. THE Interactive Agent SHALL adapt its questions and suggestions based on the updated assessment without requiring manual refresh
 
 ### Requirement 3
 
@@ -165,7 +182,7 @@ The Profile Optimizer System is a proof-of-concept dual-agent AI architecture de
 2. THE Social Profile Artifact SHALL include metadata sections for platform, extraction date, and profile URL
 3. THE Social Profile Artifact SHALL organize extracted data into clearly labeled sections corresponding to schema fields: Skills, Interests, Professional Focus, Location, and Goals
 4. THE URL Processing Agent SHALL NOT extract or store personal contact information, private messages, or any data not explicitly defined in the database schema
-5. WHEN a Member requests to view their social profile data, THE Web Interface SHALL display the Social Profile Artifact in readable format
+5. OPTIONAL: WHEN a Member requests to view their social profile data, THE Web Interface SHALL display the Social Profile Artifact in readable format
 6. THE Backend System SHALL version Social Profile Artifacts when profiles are re-analyzed
 
 
@@ -183,16 +200,19 @@ The Profile Optimizer System is a proof-of-concept dual-agent AI architecture de
 
 ### Requirement 13
 
-**User Story:** As a system architect, I want both agents to operate in read-only mode with respect to member profiles, so that we maintain ethical boundaries and member control over their data
+**User Story:** As a system architect, I want to enforce strict data access boundaries for each agent, so that we maintain ethical boundaries and member control over their data
 
 #### Acceptance Criteria
 
-1. THE Interactive Agent SHALL have read-only access to member profile data in the Database
-2. THE URL Processing Agent SHALL have read-only access to member profile data in the Database
-3. THE Backend System SHALL enforce database permissions that prevent both agents from writing to member profile tables
-4. THE Interactive Agent SHALL only write to conversation_history table
-5. THE URL Processing Agent SHALL only write markdown artifact files to the filesystem, independent of the membership Database
-6. THE Backend System SHALL log any attempted unauthorized write operations by agents
+1. THE Profile Evaluation Agent SHALL have read-only access to member profile data in the Database
+2. THE Profile Evaluation Agent SHALL only write to the profile_completeness table
+3. THE Interactive Agent SHALL NOT have direct access to the membership Database
+4. THE Interactive Agent SHALL receive assessment results from the Backend System as structured data without raw database records
+5. THE Interactive Agent SHALL only write to conversation_history table
+6. THE URL Processing Agent SHALL have read-only access to member profile data in the Database (limited to member_id and name for artifact naming)
+7. THE URL Processing Agent SHALL only write markdown artifact files to the filesystem, independent of the membership Database
+8. THE Backend System SHALL enforce database permissions that prevent agents from writing to member profile tables
+9. THE Backend System SHALL log any attempted unauthorized write operations by agents
 
 ### Requirement 14
 
@@ -201,7 +221,87 @@ The Profile Optimizer System is a proof-of-concept dual-agent AI architecture de
 #### Acceptance Criteria
 
 1. THE Backend System SHALL define minimum required profile fields necessary for pattern identification and collaboration matching
-2. THE Interactive Agent SHALL track progress toward minimum completeness for each Member
-3. WHEN a Member's profile falls below the minimum completeness threshold, THE Interactive Agent SHALL prioritize collecting missing critical information
-4. THE Backend System SHALL generate reports on overall community profile completeness across all 80+ members
-5. THE Interactive Agent SHALL collect profile data in a structured format that enables automated pattern identification and collaboration matching algorithms
+2. THE Profile Evaluation Agent SHALL track progress toward minimum completeness for each Member
+3. WHEN a Member's profile falls below the minimum completeness threshold, THE Profile Evaluation Agent SHALL flag this in assessment results
+4. THE Interactive Agent SHALL prioritize collecting missing critical information based on assessment flags
+5. THE Backend System SHALL generate reports on overall community profile completeness across all 80+ members
+6. THE Profile Evaluation Agent SHALL structure assessment data to enable automated pattern identification and collaboration matching algorithms
+
+### Requirement 15
+
+**User Story:** As a community administrator, I want a UI to dynamically adjust the profile assessment criteria, so that I can refine what the Profile Evaluation Agent prioritizes without code changes
+
+#### Acceptance Criteria
+
+1. THE Web Interface SHALL provide an administrative configuration page for profile assessment criteria
+2. THE configuration UI SHALL allow administrators to set weight values for each profile field (e.g., skills: 15%, interests: 10%, bio: 20%)
+3. THE configuration UI SHALL allow administrators to define minimum quality thresholds for text fields (e.g., bio minimum 50 characters, prompt responses minimum 100 characters)
+4. THE configuration UI SHALL allow administrators to mark fields as required, recommended, or optional for completeness scoring
+5. WHEN an administrator updates assessment criteria, THE Backend System SHALL save the configuration and apply it to subsequent Profile Evaluation Agent assessments
+6. THE Profile Evaluation Agent SHALL load the current assessment criteria configuration when calculating Completeness Scores
+7. THE configuration UI SHALL display a preview of how criteria changes would affect existing member completeness scores
+
+### Requirement 16
+
+**User Story:** As a community administrator, I want admin panels to configure all three agents' system prompts, so that I can refine agent behavior and tone without code deployments
+
+#### Acceptance Criteria
+
+1. THE Web Interface SHALL provide an administrative panel for configuring the Profile Evaluation Agent's system prompt
+2. THE Web Interface SHALL provide an administrative panel for configuring the Interactive Agent's system prompt
+3. THE Web Interface SHALL provide an administrative panel for configuring the URL Processing Agent's system prompt
+4. THE admin panel SHALL allow administrators to edit system prompt text in a multi-line text editor with syntax highlighting
+5. THE admin panel SHALL provide version history for system prompt changes with timestamps and administrator attribution
+6. WHEN an administrator updates a system prompt, THE Backend System SHALL save the new prompt and apply it to subsequent agent invocations
+6. THE admin panel SHALL allow administrators to test system prompt changes with sample inputs before applying them to production
+7. THE admin panel SHALL provide rollback functionality to revert to previous system prompt versions
+
+### Requirement 17
+
+**User Story:** As a community administrator, I want to configure what data the URL Processing Agent extracts, so that I can control the content and structure of Social Profile Artifacts
+
+#### Acceptance Criteria
+
+1. THE Web Interface SHALL provide an administrative panel for configuring URL Processing Agent extraction criteria
+2. THE configuration panel SHALL allow administrators to enable or disable extraction of specific data categories (skills, interests, experience, location, goals)
+3. THE configuration panel SHALL allow administrators to define custom extraction instructions for each data category
+4. THE configuration panel SHALL allow administrators to specify the markdown template structure for Social Profile Artifacts
+5. WHEN an administrator updates extraction criteria, THE Backend System SHALL save the configuration and apply it to subsequent URL processing operations
+6. THE URL Processing Agent SHALL load the current extraction criteria configuration when analyzing social profile URLs
+7. THE configuration panel SHALL provide a test mode where administrators can input a sample URL and preview the generated artifact
+
+### Requirement 18
+
+**User Story:** As a developer building the POC, I want the system to use the specified tech stack, so that the implementation aligns with project standards and team expertise
+
+#### Acceptance Criteria
+
+1. THE Backend System SHALL be implemented using Python 3.11 or higher
+2. THE Backend System SHALL use FastAPI as the web framework
+3. THE Database SHALL be PostgreSQL running locally for POC development
+4. THE Backend System SHALL use SQLAlchemy as the ORM for database operations
+5. THE Backend System SHALL use Alembic for database migrations
+6. THE Backend System SHALL use the Anthropic Claude SDK directly for LLM interactions without complex frameworks like LangChain
+7. THE URL Processing Agent SHALL use BeautifulSoup for web scraping combined with LLM web search capabilities
+8. THE Web Interface SHALL be implemented using TypeScript
+9. THE Web Interface SHALL use React as the frontend framework
+10. THE Web Interface SHALL use TanStack Query (React Query) for data fetching and state management
+11. THE Web Interface SHALL use Vite as the build tool
+12. THE Backend System SHALL provide a REST API for frontend-backend communication
+
+### Requirement 19
+
+**User Story:** As a developer testing the POC, I want a mock membership form with auto-populate buttons for each field, so that I can quickly create synthetic test profiles and test how profile changes affect agent behavior
+
+#### Acceptance Criteria
+
+1. THE Web Interface SHALL provide a mock membership form that mirrors the production membership form structure
+2. THE mock membership form SHALL include all profile fields defined in #[[file:database-schema.md]] including: first_name, last_name, what_you_do, location, phone_number, website, social_links, skills, interests, inspirations, and prompt_responses
+3. THE mock membership form SHALL provide a "Populate Field" button next to each individual field
+4. WHEN a developer clicks a "Populate Field" button, THE Web Interface SHALL generate realistic fake data for that specific field using a data generation library
+5. THE mock membership form SHALL allow developers to selectively populate fields to create profiles with varying completeness levels
+6. WHEN a developer saves the mock membership form, THE Backend System SHALL write the data to the Mock Database
+7. THE mock membership form SHALL provide a "Clear All" button to reset all fields
+8. THE mock membership form SHALL provide a "Populate Random Profile" button that randomly populates 30-90% of fields to simulate a wide range of profile completeness levels
+9. WHEN profile data is saved via the mock form, THE Interactive Agent SHALL reflect the updated context in subsequent profile assessments
+10. THE mock membership form SHALL be accessible via a dedicated testing route (e.g., /test/mock-profile)
