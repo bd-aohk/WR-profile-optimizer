@@ -1,0 +1,147 @@
+# creator_profiles table schema
+ 
+ - Table: `public.creator_profiles`
+ - Source: Drizzle schema (`src/lib/db/schema.ts`) and migrations in `/drizzle/*`
+ 
+ ## Columns
+ 
+ - id
+   - type: uuid
+   - constraints: primary key, not null
+   - default: gen_random_uuid()
+ 
+ - clerk_user_id
+   - type: text
+   - constraints: unique, not null
+ 
+ - clerk_email
+   - type: text
+   - constraints: not null
+ 
+ - first_name
+   - type: text
+   - constraints: not null
+ 
+ - last_name
+   - type: text
+   - constraints: not null
+ 
+ - bio
+   - type: text
+   - nullable
+ 
+ - urls
+   - type: text[]
+   - nullable
+ 
+ - roles
+   - type: text[]
+   - nullable
+ 
+ - company
+   - type: text
+   - nullable
+ 
+ - role
+   - type: text
+   - nullable
+ 
+ - website
+   - type: text
+   - nullable
+ 
+ - location
+   - type: text
+   - nullable
+ 
+ - social_links
+   - type: jsonb (array of strings)
+   - nullable
+ 
+ - profile_image_url
+   - type: text
+   - nullable
+ 
+ - is_public
+   - type: boolean
+   - constraints: not null
+   - default: true
+ 
+ - membership_status
+   - type: text (enum-like)
+   - constraints: not null
+   - default: 'free'
+   - allowed values:
+     - free — Free membership tier
+     - rejected — Admin has rejected the application
+     - under_review_connect — Admin is reviewing Connect application
+     - under_review_create — Admin is reviewing Create application
+     - under_review_scale — Admin is reviewing Scale application
+     - pending_approval_connect — Paid Connect; awaiting admin approval
+     - pending_approval_create — Paid Create; awaiting admin approval
+     - pending_approval_scale — Paid Scale; awaiting admin approval
+     - active_connect — Active Connect subscription
+     - active_create — Active Create subscription
+     - active_fellow — Active Fellow (treated like Create)
+     - active_scale — Active Scale subscription
+     - active_team_member — Internal/team access
+     - cancelled — Subscription was cancelled
+     - past_due — Payment failed (may be temporarily out of sync)
+ 
+ - status_changed_by
+   - type: uuid
+   - nullable
+ 
+ - status_changed_at
+   - type: timestamp
+   - nullable
+ 
+ - selected_tier_clerk_plan_id
+   - type: text
+   - nullable
+ 
+ - membership_notes
+   - type: text
+   - nullable
+ 
+ - initial_email_sent
+   - type: boolean
+   - constraints: not null
+   - default: false
+ 
+ - created_at
+   - type: timestamp
+   - constraints: not null
+   - default: now()
+ 
+ - updated_at
+   - type: timestamp
+   - constraints: not null
+   - default: now()
+ 
+ ## Constraints & Indexes
+ 
+ - Primary Key: `id`
+ - Unique: `clerk_user_id`
+ - Additional indexes: none
+ - Outgoing foreign keys from this table: none
+ 
+ ## Relationships (incoming foreign keys)
+ 
+ - prompt_responses.creator_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - persons.creator_profile_id → creator_profiles.id (ON DELETE SET NULL)
+ - creator_traits.creator_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - tier_reservations.creator_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - projects.creator_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - project_collaborators.profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - project_likes.profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - project_comments.author_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - comment_likes.profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - membership_status_history.creator_profile_id → creator_profiles.id (ON DELETE CASCADE)
+ - membership_status_history.changed_by → creator_profiles.id (NO ACTION)
+ - prize_wheel_entries.creator_profile_id → creator_profiles.id (UNIQUE; ON DELETE CASCADE)
+ 
+ ## Notes
+ 
+ - `social_links` is a JSON array of strings (e.g., external URLs or handles).
+ - `membership_status` values are validated at the application layer via a TypeScript union.
