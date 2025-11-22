@@ -121,7 +121,7 @@ The system uses a multi-agent architecture where each agent has a specific respo
 ```markdown
 # Social Profile: LinkedIn
 
-**Member:** Benjamin Durham
+**Member:** Benjamin Button
 **Platform:** linkedin
 **Profile URL:** https://linkedin.com/in/example
 **Extracted:** 2025-11-22T10:30:00Z
