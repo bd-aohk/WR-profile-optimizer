@@ -15,33 +15,43 @@ The system uses a multi-agent architecture where each agent has a specific respo
 │                    Member Profile Database                   │
 │                      (PostgreSQL/Neon)                       │
 └─────────────────────────────────────────────────────────────┘
-                              │
-                              │ read-only
-                              ▼
-                  ┌───────────────────────┐
-                  │ Profile Evaluation    │
-                  │      Agent            │
-                  │ • Reads profiles      │
-                  │ • Calculates scores   │
-                  │ • Identifies gaps     │
-                  └───────────────────────┘
-                              │
-                              │ assessment results
-                              ▼
-                  ┌───────────────────────┐
-                  │   Interactive Agent   │
-                  │ • NO DB access        │
-                  │ • Conducts interviews │
-                  │ • Generates suggestions│
-                  └───────────────────────┘
-                              │
-                              │ copy-to-clipboard
-                              ▼
-                         ┌─────────┐
-                         │  Member │
-                         │ manually│
-                         │ updates │
-                         └─────────┘
+           │                                    │
+           │ read-only                          │ limited read
+           │                                    │ (id, name)
+           ▼                                    ▼
+┌───────────────────────┐          ┌───────────────────────┐
+│ Profile Evaluation    │          │  URL Processing       │
+│      Agent            │          │      Agent            │
+│ • Reads profiles      │          │ • Scrapes URLs        │
+│ • Calculates scores   │          │ • Extracts data       │
+│ • Identifies gaps     │          │ • Generates artifacts │
+└───────────────────────┘          └───────────────────────┘
+           │                                    │
+           │ assessment results                 │ markdown files
+           │                                    ▼
+           │                        ┌───────────────────────┐
+           │                        │   Filesystem          │
+           │                        │   Social Profile      │
+           │                        │   Artifacts (.md)     │
+           │                        └───────────────────────┘
+           │                                    │
+           │                                    │ reads artifacts
+           └────────────────┬───────────────────┘
+                            ▼
+                ┌───────────────────────┐
+                │   Interactive Agent   │
+                │ • NO DB access        │
+                │ • Conducts interviews │
+                │ • Generates suggestions│
+                └───────────────────────┘
+                            │
+                            │ copy-to-clipboard
+                            ▼
+                       ┌─────────┐
+                       │  Member │
+                       │ manually│
+                       │ updates │
+                       └─────────┘
 ```
 
 ### 1. Profile Evaluation Agent
